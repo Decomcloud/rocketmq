@@ -70,6 +70,7 @@ public class Configuration {
      * @return the current Configuration object
      */
     public Configuration registerConfig(Object configObject) {
+        // 读写锁修改配置文件
         try {
             readWriteLock.writeLock().lockInterruptibly();
 

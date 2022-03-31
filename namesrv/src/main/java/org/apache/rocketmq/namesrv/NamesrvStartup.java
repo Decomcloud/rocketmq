@@ -82,7 +82,9 @@ public class NamesrvStartup {
 
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        // 写死nameserver 监听端口号
         nettyServerConfig.setListenPort(9876);
+        // 读取-c指定的配置文件
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
@@ -98,14 +100,14 @@ public class NamesrvStartup {
                 in.close();
             }
         }
-
+        // -p 打印参数, 然后退出
         if (commandLine.hasOption('p')) {
             InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_NAME);
             MixAll.printObjectProperties(console, namesrvConfig);
             MixAll.printObjectProperties(console, nettyServerConfig);
             System.exit(0);
         }
-
+        // 读出命令行中的配置覆盖掉namesrvConfig
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
 
         if (null == namesrvConfig.getRocketmqHome()) {
@@ -118,12 +120,12 @@ public class NamesrvStartup {
         configurator.setContext(lc);
         lc.reset();
         configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/logback_namesrv.xml");
-
+        // 打印配置文件信息
         log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
         MixAll.printObjectProperties(log, namesrvConfig);
         MixAll.printObjectProperties(log, nettyServerConfig);
-
+        // 创建controller, 通过读写锁修改缓存
         final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
 
         // remember all configs to prevent discard
@@ -143,12 +145,12 @@ public class NamesrvStartup {
             controller.shutdown();
             System.exit(-3);
         }
-
+        // JVM关闭时候会执行
         Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, (Callable<Void>) () -> {
             controller.shutdown();
             return null;
         }));
-
+        // 启动
         controller.start();
 
         return controller;
