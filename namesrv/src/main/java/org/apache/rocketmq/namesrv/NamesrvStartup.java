@@ -46,8 +46,7 @@ public class NamesrvStartup {
     private static InternalLogger log;
     private static Properties properties = null;
     private static CommandLine commandLine = null;
-    // VM -c D:\\myjava\\rocketmq\\mainhome\\namesrv\\broker.conf
-    // ENV ROCKETMQ_HOME=D:\myjava\rocketmq\mainhome\
+    // ENV ROCKETMQ_HOME=D:\myjava\opensource\rocketmq\mainhome\namesrv\
     public static void main(String[] args) {
         main0(args);
     }

@@ -53,8 +53,8 @@ public class BrokerStartup {
     public static String configFile = null;
     public static InternalLogger log;
 
-    // VM -c D:\\myjava\\rocketmq\\mainhome\\broker\\broker.conf
-    // ENV ROCKETMQ_HOME=D:\myjava\rocketmq\mainhome\
+    // VM -c D:\\myjava\\opensource\\rocketmq\\mainhome\\broker\\conf\\broker.conf
+    // ENV ROCKETMQ_HOME=D:\myjava\opensource\rocketmq\mainhome\broker\
     public static void main(String[] args) {
         start(createBrokerController(args));
     }
