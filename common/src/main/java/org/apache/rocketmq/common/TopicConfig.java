@@ -20,6 +20,7 @@ import org.apache.rocketmq.common.constant.PermName;
 
 public class TopicConfig {
     private static final String SEPARATOR = " ";
+    // 默认16个read queue, 16个write queue
     public static int defaultReadQueueNums = 16;
     public static int defaultWriteQueueNums = 16;
     private String topicName;

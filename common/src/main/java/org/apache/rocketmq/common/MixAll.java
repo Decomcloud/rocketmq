@@ -139,10 +139,10 @@ public class MixAll {
     }
 
     public static void string2File(final String str, final String fileName) throws IOException {
-
+        // 先写入tmp
         String tmpFile = fileName + ".tmp";
         string2FileNotSafe(str, tmpFile);
-
+        // 把原数据读取出来, 写入.bak中
         String bakFile = fileName + ".bak";
         String prevContent = file2String(fileName);
         if (prevContent != null) {
@@ -151,7 +151,7 @@ public class MixAll {
 
         File file = new File(fileName);
         file.delete();
-
+        // tmp重命名
         file = new File(tmpFile);
         file.renameTo(new File(fileName));
     }

@@ -41,14 +41,15 @@ import org.apache.rocketmq.srvutil.FileWatchService;
 
 public class NamesrvController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
-
+    // nameserver核心配置
     private final NamesrvConfig namesrvConfig;
-
+    // 网络通信核心配置
     private final NettyServerConfig nettyServerConfig;
-
+    // 单线程线程池
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "NSScheduledThread"));
     private final KVConfigManager kvConfigManager;
+    // 核心的路由数据
     private final RouteInfoManager routeInfoManager;
 
     private RemotingServer remotingServer;

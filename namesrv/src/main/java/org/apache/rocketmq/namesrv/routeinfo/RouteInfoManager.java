@@ -52,12 +52,20 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
+    // broker网络长链接过期时间, 默认2min
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    // topic -> broker上面的queue数据
     private final HashMap<String/* topic */, Map<String /* brokerName */ , QueueData>> topicQueueTable;
+    // 一个broker代表了一组broker
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+    // 一个nameserver可以管理多个broker集群
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
+    // 管理broker信息, 心跳和链接等
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+    // 可以基于tag进行数据筛选, 在每台broker上启动一个或多个filter server, 启动后会和本地的broker进行长链接沟通, 注册, 心跳等
+    // 把自定义的class上传到filter server里面去, 消费数据的时候, 让broker把数据先传到本地的filter server里面去, 可以进行细粒度的筛选
+    // 这里面保存每个broker对应的不同的filter server
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
@@ -110,7 +118,9 @@ public class RouteInfoManager {
             final String brokerName,
             final long brokerId,
             final String haServerAddr,
+            // 当前broker包含的队列情况
             final TopicConfigSerializeWrapper topicConfigWrapper,
+            // broker机器上的filter server列表
             final List<String> filterServerList,
             final Channel channel) {
         RegisterBrokerResult result = new RegisterBrokerResult();
@@ -136,6 +146,7 @@ public class RouteInfoManager {
                 Map<Long, String> brokerAddrsMap = brokerData.getBrokerAddrs();
                 //Switch slave to master: first remove <1, IP:PORT> in namesrv, then add <0, IP:PORT>
                 //The same IP:PORT must only have one record in brokerAddrTable
+                // 处理异常数据, 同一台机器地址相同, 启动了不同的broker节点, 但是broker id不同. 需要移除旧数据
                 Iterator<Entry<Long, String>> it = brokerAddrsMap.entrySet().iterator();
                 while (it.hasNext()) {
                     Entry<Long, String> item = it.next();
@@ -153,8 +164,10 @@ public class RouteInfoManager {
 
                 registerFirst = registerFirst || (null == oldAddr);
 
+                // 主节点 并且上报了topic的信息
                 if (null != topicConfigWrapper
                         && MixAll.MASTER_ID == brokerId) {
+                    // 数据有变化(版本号不同)或者是第一次注册
                     if (this.isBrokerTopicConfigChanged(brokerAddr, topicConfigWrapper.getDataVersion())
                             || registerFirst) {
                         ConcurrentMap<String, TopicConfig> tcTable =
@@ -185,6 +198,7 @@ public class RouteInfoManager {
                     }
                 }
 
+                // 给slave broker返回ha server地址和master的地址
                 if (MixAll.MASTER_ID != brokerId) {
                     String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
                     if (masterAddr != null) {
@@ -218,6 +232,7 @@ public class RouteInfoManager {
         return null;
     }
 
+    // 更新live broker心跳时间戳
     public void updateBrokerInfoUpdateTimestamp(final String brokerAddr, long timeStamp) {
         BrokerLiveInfo prev = this.brokerLiveTable.get(brokerAddr);
         if (prev != null) {
@@ -301,6 +316,7 @@ public class RouteInfoManager {
         return topicCnt;
     }
 
+    // 下线
     public void unregisterBroker(
             final String clusterName,
             final String brokerAddr,
@@ -379,6 +395,7 @@ public class RouteInfoManager {
         noBrokerRegisterTopic.forEach(topicQueueTable::remove);
     }
 
+    // 拿出topic路由的数据
     public TopicRouteData pickupTopicRouteData(final String topic) {
         TopicRouteData topicRouteData = new TopicRouteData();
         boolean foundQueueData = false;
@@ -718,9 +735,13 @@ public class RouteInfoManager {
 }
 
 class BrokerLiveInfo {
+    // 心跳时间戳
     private long lastUpdateTimestamp;
+    // 版本好
     private DataVersion dataVersion;
+    // 长链接
     private Channel channel;
+    // 和当前broker机器构成HA高可用的broker地址
     private String haServerAddr;
 
     public BrokerLiveInfo(long lastUpdateTimestamp, DataVersion dataVersion, Channel channel,

@@ -34,6 +34,9 @@ public class KVConfigManager {
     private final NamesrvController namesrvController;
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    // 使用读写锁对hashmap做并发安全控制, 锁粒度过粗
+    // 对不同namespace的配置数据进行读写操作, 都是一把锁, 并发性不好
+    // 可以优化成对每个namespace各用一把锁
     private final HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable =
         new HashMap<String, HashMap<String, String>>();
 
@@ -44,6 +47,7 @@ public class KVConfigManager {
     public void load() {
         String content = null;
         try {
+            // kv path文件存放的是json格式的大字符串, 包含kv配置
             content = MixAll.file2String(this.namesrvController.getNamesrvConfig().getKvConfigPath());
         } catch (IOException e) {
             log.warn("Load KV config table exception", e);
@@ -83,7 +87,7 @@ public class KVConfigManager {
         } catch (InterruptedException e) {
             log.error("putKVConfig InterruptedException", e);
         }
-
+        // 2个线程同时修改,另外一个卡住, 在这里持久化时可以同时拿到读锁,写文件
         this.persist();
     }
 

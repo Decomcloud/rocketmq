@@ -22,8 +22,16 @@ package org.apache.rocketmq.common.protocol.route;
 
 public class QueueData implements Comparable<QueueData> {
     private String brokerName;
+    // write queue 用于写入数据, read queue用于读取数据
+    // 4个write queue, 2个read queue, 会均匀写入4个write queue中去, 但是会从2个read queue里面读取到2个对应write queue的数据
+    // 主要用于缩容和扩容
+    // 缩容:
+    // 8个write queue, 8个read queue -> 改成4个write queue, 这样对应写入4个queue中, read queue中也只有4个会持续有新消息,
+    // 另外4个不会写入消息, 等把原来的数据消费完毕, 在把8个read queue改成4个read queue
     private int readQueueNums;
     private int writeQueueNums;
+
+    // 读写标识
     private int perm;
     private int topicSysFlag;
 
