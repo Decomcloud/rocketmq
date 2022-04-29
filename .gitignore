@@ -13,3 +13,6 @@ devenv
 .DS_Store
 localbin
 nohup.out
+mainhome/broker/logs
+mainhome/namesrv/logs
+mainhome/broker/store
