@@ -420,8 +420,9 @@ public class RouteInfoManager {
                     for (String brokerName : brokerNameSet) {
                         BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                         if (null != brokerData) {
-                            BrokerData brokerDataClone = new BrokerData(brokerData.getCluster(), brokerData.getBrokerName(), (HashMap<Long, String>) brokerData
-                                    .getBrokerAddrs().clone());
+                            BrokerData brokerDataClone = new BrokerData(brokerData.getCluster(),
+                                    brokerData.getBrokerName(),
+                                    (HashMap<Long, String>) brokerData.getBrokerAddrs().clone());
                             brokerDataList.add(brokerDataClone);
                             foundBrokerData = true;
 
@@ -455,6 +456,7 @@ public class RouteInfoManager {
         return null;
     }
 
+    // broker和namesrv 超过2min 没有通信, 删除数据, 断开链接
     public int scanNotActiveBroker() {
         int removeCount = 0;
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();
