@@ -51,14 +51,15 @@ public class NamesrvController {
     private final KVConfigManager kvConfigManager;
     // 核心的路由数据
     private final RouteInfoManager routeInfoManager;
-
+    // 网络通信处理组件, 和broker, producer, consumer进行通信
     private RemotingServer remotingServer;
-
+    // 对broker进行管理, nameserver和broker的网络事件监听器, 连接, 断开, 关闭等
     private BrokerHousekeepingService brokerHousekeepingService;
-
+    // 线程池
     private ExecutorService remotingExecutor;
 
     private Configuration configuration;
+    // 文件监听器, tls相关
     private FileWatchService fileWatchService;
 
     public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {

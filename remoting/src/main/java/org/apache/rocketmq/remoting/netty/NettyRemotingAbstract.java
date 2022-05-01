@@ -72,6 +72,7 @@ public abstract class NettyRemotingAbstract {
     /**
      * This map caches all on-going requests.
      */
+    // 缓存所有发送出去的请求
     protected final ConcurrentMap<Integer /* opaque */, ResponseFuture> responseTable =
         new ConcurrentHashMap<Integer, ResponseFuture>(256);
 
@@ -198,8 +199,10 @@ public abstract class NettyRemotingAbstract {
             Runnable run = new Runnable() {
                 @Override
                 public void run() {
+                    // 收到request请求后的处理
                     try {
                         String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+                        // 回调
                         doBeforeRpcHooks(remoteAddr, cmd);
                         final RemotingResponseCallback callback = new RemotingResponseCallback() {
                             @Override
@@ -221,6 +224,7 @@ public abstract class NettyRemotingAbstract {
                                 }
                             }
                         };
+                        // 异步
                         if (pair.getObject1() instanceof AsyncNettyRequestProcessor) {
                             AsyncNettyRequestProcessor processor = (AsyncNettyRequestProcessor)pair.getObject1();
                             processor.asyncProcessRequest(ctx, cmd, callback);
@@ -243,6 +247,7 @@ public abstract class NettyRemotingAbstract {
                 }
             };
 
+            // 直接拒绝
             if (pair.getObject1().rejectRequest()) {
                 final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_BUSY,
                     "[REJECTREQUEST]system busy, start flow control for a while");
@@ -252,6 +257,7 @@ public abstract class NettyRemotingAbstract {
             }
 
             try {
+                // 放入线程池中
                 final RequestTask requestTask = new RequestTask(run, ctx.channel(), cmd);
                 pair.getObject2().submit(requestTask);
             } catch (RejectedExecutionException e) {

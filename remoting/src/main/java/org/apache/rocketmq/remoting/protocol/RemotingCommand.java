@@ -69,6 +69,7 @@ public class RemotingCommand {
         }
     }
 
+    // mq网络通信协议
     private int code;
     private LanguageCode language = LanguageCode.JAVA;
     private int version = 0;
@@ -79,7 +80,7 @@ public class RemotingCommand {
     private transient CommandCustomHeader customHeader;
 
     private SerializeType serializeTypeCurrentRPC = serializeTypeConfigInThisServer;
-
+    // 消息体
     private transient byte[] body;
 
     protected RemotingCommand() {
@@ -337,13 +338,14 @@ public class RemotingCommand {
         if (this.body != null) {
             length += body.length;
         }
-
+        // 分配总大小
         ByteBuffer result = ByteBuffer.allocate(4 + length);
 
         // length
         result.putInt(length);
 
         // header length
+        // header length和编码类型
         result.put(markProtocolType(headerData.length, serializeTypeCurrentRPC));
 
         // header data
@@ -360,6 +362,7 @@ public class RemotingCommand {
     }
 
     private byte[] headerEncode() {
+        // 把自定义的头放入extFields中
         this.makeCustomHeaderToNet();
         if (SerializeType.ROCKETMQ == serializeTypeCurrentRPC) {
             return RocketMQSerializable.rocketMQProtocolEncode(this);
@@ -370,11 +373,12 @@ public class RemotingCommand {
 
     public void makeCustomHeaderToNet() {
         if (this.customHeader != null) {
+            // 获取自定义头信息
             Field[] fields = getClazzFields(customHeader.getClass());
             if (null == this.extFields) {
                 this.extFields = new HashMap<String, String>();
             }
-
+            // 获取自定义头信息, 放入extFields中
             for (Field field : fields) {
                 if (!Modifier.isStatic(field.getModifiers())) {
                     String name = field.getName();

@@ -36,6 +36,7 @@ public class RocketMQSerializable {
         }
 
         // HashMap<String, String> extFields
+        // 序列化map
         byte[] extFieldsBytes = null;
         int extLen = 0;
         if (cmd.getExtFields() != null && !cmd.getExtFields().isEmpty()) {
@@ -43,6 +44,7 @@ public class RocketMQSerializable {
             extLen = extFieldsBytes.length;
         }
 
+        // 总长度
         int totalLen = calTotalLen(remarkLen, extLen);
 
         ByteBuffer headerBuffer = ByteBuffer.allocate(totalLen);
@@ -82,6 +84,7 @@ public class RocketMQSerializable {
         int totalLength = 0;
         int kvLength;
         Iterator<Map.Entry<String, String>> it = map.entrySet().iterator();
+        // 获取长度
         while (it.hasNext()) {
             Map.Entry<String, String> entry = it.next();
             if (entry.getKey() != null && entry.getValue() != null) {
