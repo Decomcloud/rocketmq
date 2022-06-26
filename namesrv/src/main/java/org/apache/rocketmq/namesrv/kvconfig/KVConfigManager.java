@@ -88,11 +88,14 @@ public class KVConfigManager {
             log.error("putKVConfig InterruptedException", e);
         }
         // 2个线程同时修改,另外一个卡住, 在这里持久化时可以同时拿到读锁,写文件
+        // 可能一个线程更新完到了这里, 然后第二个线程抢到了写锁.
+        // 写完后, 在这里可能会同时拿到读锁修改文件, 可能会有冲突
         this.persist();
     }
 
     public void persist() {
         try {
+            // 读锁写入磁盘
             this.lock.readLock().lockInterruptibly();
             try {
                 KVConfigSerializeWrapper kvConfigSerializeWrapper = new KVConfigSerializeWrapper();
