@@ -86,6 +86,7 @@ public abstract class NettyRemotingAbstract {
     /**
      * Executor to feed netty events to user defined {@link ChannelEventListener}.
      */
+    // 处理网络连接事件, 事件发生后, 将事件放入queue中, 定时轮询取出queue中数据, 回调之前传入的listener接口
     protected final NettyEventExecutor nettyEventExecutor = new NettyEventExecutor();
 
     /**
@@ -101,6 +102,7 @@ public abstract class NettyRemotingAbstract {
     /**
      * custom rpc hooks
      */
+    // 发起或者收到相应后的回调钩子
     protected List<RPCHook> rpcHooks = new ArrayList<RPCHook>();
 
 

@@ -33,9 +33,9 @@ public class ResponseFuture {
     private final InvokeCallback invokeCallback;
     private final long beginTimestamp = System.currentTimeMillis();
     private final CountDownLatch countDownLatch = new CountDownLatch(1);
-
+    // 释放一次
     private final SemaphoreReleaseOnlyOnce once;
-
+    // 仅仅支持一次调用call back回调
     private final AtomicBoolean executeCallbackOnlyOnce = new AtomicBoolean(false);
     private volatile RemotingCommand responseCommand;
     private volatile boolean sendRequestOK = true;
