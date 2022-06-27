@@ -106,10 +106,10 @@ public class RocketMQSerializable {
             if (entry.getKey() != null && entry.getValue() != null) {
                 key = entry.getKey().getBytes(CHARSET_UTF8);
                 val = entry.getValue().getBytes(CHARSET_UTF8);
-
+                // 放入key 长度和byte值
                 content.putShort((short) key.length);
                 content.put(key);
-
+                // 放入value 长度和byte值
                 content.putInt(val.length);
                 content.put(val);
             }

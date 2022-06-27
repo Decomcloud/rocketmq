@@ -138,6 +138,7 @@ public class RemotingCommand {
         return createResponseCommand(code, remark, null);
     }
 
+    // 解码
     public static RemotingCommand decode(final byte[] array) throws RemotingCommandException {
         ByteBuffer byteBuffer = ByteBuffer.wrap(array);
         return decode(byteBuffer);
@@ -327,6 +328,7 @@ public class RemotingCommand {
         return name;
     }
 
+    // 编码
     public ByteBuffer encode() {
         // 1> header length size
         int length = 4;
@@ -375,14 +377,17 @@ public class RemotingCommand {
     public void makeCustomHeaderToNet() {
         if (this.customHeader != null) {
             // 获取自定义头信息
+            // 实现org.apache.rocketmq.remoting.CommandCustomHeader自定义头
             Field[] fields = getClazzFields(customHeader.getClass());
             if (null == this.extFields) {
                 this.extFields = new HashMap<String, String>();
             }
             // 获取自定义头信息, 放入extFields中
             for (Field field : fields) {
+                // 只会放入非静态的字段
                 if (!Modifier.isStatic(field.getModifiers())) {
                     String name = field.getName();
+                    // 不是this开头的
                     if (!name.startsWith("this")) {
                         Object value = null;
                         try {
