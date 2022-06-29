@@ -140,6 +140,7 @@ public class NamesrvController {
         } else {
             // 正常情况
             // netty处理别人发过来的请求
+            // 这里注册namesrv的默认请求处理组件
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
         }
     }

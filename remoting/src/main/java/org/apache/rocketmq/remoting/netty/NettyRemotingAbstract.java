@@ -233,11 +233,15 @@ public abstract class NettyRemotingAbstract {
                             }
                         };
                         // 异步
+                        // namesrv这里调用org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor.processRequest
+                        // 这个是的父类是AsyncNettyRequestProcessor, 其实是伪异步
                         if (pair.getObject1() instanceof AsyncNettyRequestProcessor) {
                             AsyncNettyRequestProcessor processor = (AsyncNettyRequestProcessor)pair.getObject1();
                             processor.asyncProcessRequest(ctx, cmd, callback);
                         } else {
+                            // 同步
                             NettyRequestProcessor processor = pair.getObject1();
+
                             RemotingCommand response = processor.processRequest(ctx, cmd);
                             callback.callback(response);
                         }

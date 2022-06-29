@@ -234,6 +234,7 @@ public class RemotingCommand {
         this.customHeader = customHeader;
     }
 
+    // 解析扩展头
     public CommandCustomHeader decodeCommandCustomHeader(
         Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
         CommandCustomHeader objectHeader;
@@ -246,7 +247,7 @@ public class RemotingCommand {
         }
 
         if (this.extFields != null) {
-
+            // 反射获取扩展头的字段
             Field[] fields = getClazzFields(classHeader);
             for (Field field : fields) {
                 if (!Modifier.isStatic(field.getModifiers())) {
