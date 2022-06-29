@@ -93,6 +93,7 @@ public class NamesrvController {
         if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
             // Register a listener to reload SslContext
             try {
+                // 监听加密通信文件的变化
                 fileWatchService = new FileWatchService(
                     new String[] {
                         TlsSystemConfig.tlsServerCertPath,
@@ -137,7 +138,8 @@ public class NamesrvController {
             this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
                 this.remotingExecutor);
         } else {
-
+            // 正常情况
+            // netty处理别人发过来的请求
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
         }
     }

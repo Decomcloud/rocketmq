@@ -20,10 +20,12 @@ public class NettyServerConfig implements Cloneable {
     // 默认端口号 nameserver启动的时候改成9876了
     private int listenPort = 8888;
     // netty server工作线程数
+    // 处理netty端接收到的request
     private int serverWorkerThreads = 8;
     // netty public 线程池的线程数量
+    // 回调线程数量
     private int serverCallbackExecutorThreads = 0;
-    // netty io 线程数, 解析网络请求, 然后转发给worker线程处理
+    // netty io 线程数, 解析网络请求, 然后转发给worker线程处理, 所有建立好的连接会分配给3个线程, 每个线程多路复用监听一批读写IO
     private int serverSelectorThreads = 3;
     // broker构建的参数
     private int serverOnewaySemaphoreValue = 256;
@@ -35,6 +37,7 @@ public class NettyServerConfig implements Cloneable {
     private int serverSocketRcvBufSize = NettySystemConfig.socketRcvbufSize;
     private int writeBufferHighWaterMark = NettySystemConfig.writeBufferHighWaterMark;
     private int writeBufferLowWaterMark = NettySystemConfig.writeBufferLowWaterMark;
+    // 3次握手accept队列的长度
     private int serverSocketBacklog = NettySystemConfig.socketBacklog;
     // ByteBuffer是否开启缓存,默认是开启的
     private boolean serverPooledByteBufAllocatorEnable = true;

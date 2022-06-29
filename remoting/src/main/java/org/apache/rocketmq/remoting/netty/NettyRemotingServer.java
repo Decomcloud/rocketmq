@@ -66,11 +66,13 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class NettyRemotingServer extends NettyRemotingAbstract implements RemotingServer {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+    // netty组件
     private final ServerBootstrap serverBootstrap;
     private final EventLoopGroup eventLoopGroupSelector;
     private final EventLoopGroup eventLoopGroupBoss;
+    // 配置信息
     private final NettyServerConfig nettyServerConfig;
-
+    // 公共线程池
     private final ExecutorService publicExecutor;
     private final ChannelEventListener channelEventListener;
 
@@ -116,7 +118,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 return new Thread(r, "NettyServerPublicExecutor_" + this.threadIndex.incrementAndGet());
             }
         });
-
+        // 默认不会使用epoll
         if (useEpoll()) {
             this.eventLoopGroupBoss = new EpollEventLoopGroup(1, new ThreadFactory() {
                 private AtomicInteger threadIndex = new AtomicInteger(0);
@@ -137,6 +139,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 }
             });
         } else {
+            // 默认在这里, boss负责连接监听的, 一般来说一个就够了
+            // 一个线程用selector多路复用, 监听server socket channel发起的连接请求
             this.eventLoopGroupBoss = new NioEventLoopGroup(1, new ThreadFactory() {
                 private AtomicInteger threadIndex = new AtomicInteger(0);
 
@@ -201,11 +205,14 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         ServerBootstrap childHandler =
             this.serverBootstrap.group(this.eventLoopGroupBoss, this.eventLoopGroupSelector)
                 .channel(useEpoll() ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
+                    // tcp三次握手的队列长度
                 .option(ChannelOption.SO_BACKLOG, nettyServerConfig.getServerSocketBacklog())
                 .option(ChannelOption.SO_REUSEADDR, true)
+                    // 关闭网络探测包
                 .option(ChannelOption.SO_KEEPALIVE, false)
+                    // 禁止打包传输
                 .childOption(ChannelOption.TCP_NODELAY, true)
-                // 设置监听端口号 9876
+                // 设置nameserver监听端口号 9876
                 .localAddress(new InetSocketAddress(this.nettyServerConfig.getListenPort()))
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
@@ -255,7 +262,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         if (this.channelEventListener != null) {
             this.nettyEventExecutor.start();
         }
-
+        // 扫描请求是否超时
         this.timer.scheduleAtFixedRate(new TimerTask() {
 
             @Override
@@ -363,12 +370,18 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     }
 
     private void prepareSharableHandlers() {
+        // 创建握手的handler
         handshakeHandler = new HandshakeHandler(TlsSystemConfig.tlsMode);
+        // 编码器
         encoder = new NettyEncoder();
+        // 连接管理
         connectionManageHandler = new NettyConnectManageHandler();
+        // 消息处理
         serverHandler = new NettyServerHandler();
     }
 
+    //inbound 处理输入数据
+    // 判断加密通信相关
     @ChannelHandler.Sharable
     class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
@@ -397,6 +410,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                         break;
                     case PERMISSIVE:
                     case ENFORCING:
+                        // 开启了加密, 添加2个handler
                         if (null != sslContext) {
                             ctx.pipeline()
                                 .addAfter(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
@@ -422,6 +436,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
             try {
                 // Remove this handler
+                // 移除掉, 这里仅仅是连接的第一条消息会判断, 加密通信的化, 就加入2个handler
                 ctx.pipeline().remove(this);
             } catch (NoSuchElementException e) {
                 log.error("Error while removing HandshakeHandler", e);
@@ -479,6 +494,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             }
         }
 
+        // 接收来自IdleStateHandler的空闲超时事件
         @Override
         public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
             if (evt instanceof IdleStateEvent) {
@@ -488,6 +504,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     log.warn("NETTY SERVER PIPELINE: IDLE exception [{}]", remoteAddress);
                     RemotingUtil.closeChannel(ctx.channel());
                     if (NettyRemotingServer.this.channelEventListener != null) {
+                        // 放入到处理连接空闲事件的队列中, 然后回调
                         NettyRemotingServer.this
                             .putNettyEvent(new NettyEvent(NettyEventType.IDLE, remoteAddress, ctx.channel()));
                     }
