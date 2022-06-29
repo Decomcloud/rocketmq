@@ -116,26 +116,81 @@ public class BrokerController {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final InternalLogger LOG_PROTECTION = InternalLoggerFactory.getLogger(LoggerName.PROTECTION_LOGGER_NAME);
     private static final InternalLogger LOG_WATER_MARK = InternalLoggerFactory.getLogger(LoggerName.WATER_MARK_LOGGER_NAME);
+
+    // broker组件
+
+    // 核心配置信息
     private final BrokerConfig brokerConfig;
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
     private final MessageStoreConfig messageStoreConfig;
+    // broker 配置管理
+    private Configuration configuration;
+    private FileWatchService fileWatchService;
+
+    // broker自有组件
+    private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
+    // 调度线程池
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+            "BrokerControllerScheduledThread"));
+    // 主从同步
+    private final SlaveSynchronize slaveSynchronize;
+    // filter server管理
+    private final FilterServerManager filterServerManager;
+    // broker的统计管理
+    private final BrokerStatsManager brokerStatsManager;
+    // broker统计数据
+    private BrokerStats brokerStats;
+    // 消息发送过来的回调以及被消费的回调钩子
+    private final List<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
+    private final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
+    // broker负责topic管理元数据的组件
+    private TopicConfigManager topicConfigManager;
+    // broker快速失败
+    private BrokerFastFailure brokerFastFailure;
+    // 是否启用周期性更新master节点的ha高可用服务器地址的功能
+    private boolean updateMasterHAServerAddrPeriodically = false;
+    // 主从同步
+    private Future<?> slaveSyncFuture;
+    // 访问校验
+    private Map<Class,AccessValidator> accessValidatorMap = new HashMap<Class, AccessValidator>();
+    // 消息到达监听器
+    private final MessageArrivingListener messageArrivingListener;
+
+    // producer生产者有关
+    private final ProducerManager producerManager;
+
+    // 数据存储
+    private MessageStore messageStore;
+    private InetSocketAddress storeHost;
+
+    // consumer消费者相关
+    // consumer消费时候的offset管理组件
     private final ConsumerOffsetManager consumerOffsetManager;
     private final ConsumerManager consumerManager;
     private final ConsumerFilterManager consumerFilterManager;
-    private final ProducerManager producerManager;
-    private final ClientHousekeepingService clientHousekeepingService;
     private final PullMessageProcessor pullMessageProcessor;
     private final PullRequestHoldService pullRequestHoldService;
-    private final MessageArrivingListener messageArrivingListener;
-    private final Broker2Client broker2Client;
     private final SubscriptionGroupManager subscriptionGroupManager;
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
-    private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
+
+    // 事务消息 高阶特性组件
+    private TransactionalMessageCheckService transactionalMessageCheckService;
+    private TransactionalMessageService transactionalMessageService;
+    private AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
+
+    // 网络通信
+    // 客户端网络连接事件监听组件
+    // 网络连接异常监听组件, 包括定时任务移除不活跃
+    private final ClientHousekeepingService clientHousekeepingService;
+    // broker对客户端管理组件
+    private final Broker2Client broker2Client;
+    // broker对name server通信组件
     private final BrokerOuterAPI brokerOuterAPI;
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-        "BrokerControllerScheduledThread"));
-    private final SlaveSynchronize slaveSynchronize;
+    private RemotingServer remotingServer;
+    private RemotingServer fastRemotingServer;
+
+    // broker包含的内存队列
     private final BlockingQueue<Runnable> sendThreadPoolQueue;
     private final BlockingQueue<Runnable> putThreadPoolQueue;
     private final BlockingQueue<Runnable> pullThreadPoolQueue;
@@ -145,14 +200,8 @@ public class BrokerController {
     private final BlockingQueue<Runnable> heartbeatThreadPoolQueue;
     private final BlockingQueue<Runnable> consumerManagerThreadPoolQueue;
     private final BlockingQueue<Runnable> endTransactionThreadPoolQueue;
-    private final FilterServerManager filterServerManager;
-    private final BrokerStatsManager brokerStatsManager;
-    private final List<SendMessageHook> sendMessageHookList = new ArrayList<SendMessageHook>();
-    private final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
-    private MessageStore messageStore;
-    private RemotingServer remotingServer;
-    private RemotingServer fastRemotingServer;
-    private TopicConfigManager topicConfigManager;
+
+    // 线程池
     private ExecutorService sendMessageExecutor;
     private ExecutorService putMessageFutureExecutor;
     private ExecutorService pullMessageExecutor;
@@ -163,17 +212,6 @@ public class BrokerController {
     private ExecutorService heartbeatExecutor;
     private ExecutorService consumerManageExecutor;
     private ExecutorService endTransactionExecutor;
-    private boolean updateMasterHAServerAddrPeriodically = false;
-    private BrokerStats brokerStats;
-    private InetSocketAddress storeHost;
-    private BrokerFastFailure brokerFastFailure;
-    private Configuration configuration;
-    private FileWatchService fileWatchService;
-    private TransactionalMessageCheckService transactionalMessageCheckService;
-    private TransactionalMessageService transactionalMessageService;
-    private AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
-    private Future<?> slaveSyncFuture;
-    private Map<Class,AccessValidator> accessValidatorMap = new HashMap<Class, AccessValidator>();
 
     public BrokerController(
         final BrokerConfig brokerConfig,
