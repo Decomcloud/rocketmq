@@ -33,10 +33,13 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
+// 随着consumer持续不断的从broker这里消费topic的queue数据
+// 这里需要管理这个consumer此时对这个topic的每个queue消费到的位置
 public class ConsumerOffsetManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     protected static final String TOPIC_GROUP_SEPARATOR = "@";
 
+    // 存放的偏移量信息
     protected ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
         new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
 
@@ -82,6 +85,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         return result;
     }
 
+    // 通过consumer group订阅过的topic
     public Set<String> whichTopicByConsumer(final String group) {
         Set<String> topics = new HashSet<String>();
 
@@ -100,6 +104,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         return topics;
     }
 
+    // 通过topic找到订阅的consumer group
     public Set<String> whichGroupByTopic(final String topic) {
         Set<String> groups = new HashSet<String>();
 
@@ -118,6 +123,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         return groups;
     }
 
+    // 更新consumer group对指定topic的指定queue的消费进度
     public void commitOffset(final String clientHost, final String group, final String topic, final int queueId,
         final long offset) {
         // topic@group
@@ -125,13 +131,16 @@ public class ConsumerOffsetManager extends ConfigManager {
         this.commitOffset(clientHost, key, queueId, offset);
     }
 
+    // 更新consumer group对指定topic的指定queue的消费进度
     private void commitOffset(final String clientHost, final String key, final int queueId, final long offset) {
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
+        // 该consumer group第一次提交对topic的offset
         if (null == map) {
             map = new ConcurrentHashMap<Integer, Long>(32);
             map.put(queueId, offset);
             this.offsetTable.put(key, map);
         } else {
+            // 更新消费进度
             Long storeOffset = map.put(queueId, offset);
             if (storeOffset != null && offset < storeOffset) {
                 log.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
@@ -139,6 +148,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         }
     }
 
+    // 查询consumer group对指定topic的指定queue的消费进度
     public long queryOffset(final String group, final String topic, final int queueId) {
         // topic@group
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
@@ -158,12 +168,16 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     @Override
     public String configFilePath() {
-        return BrokerPathConfigHelper.getConsumerOffsetPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
+        // 获取配置文件路径, 用户可以配置 -- storePathRootDir
+        return BrokerPathConfigHelper.getConsumerOffsetPath(
+                this.brokerController.getMessageStoreConfig().getStorePathRootDir());
     }
 
     @Override
     public void decode(String jsonString) {
+        // 对读取出来的json串进行解析
         if (jsonString != null) {
+            // 直接对当前对象序列化
             ConsumerOffsetManager obj = RemotingSerializable.fromJson(jsonString, ConsumerOffsetManager.class);
             if (obj != null) {
                 this.offsetTable = obj.offsetTable;
@@ -172,6 +186,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     public String encode(final boolean prettyFormat) {
+        // 直接fast json序列化
         return RemotingSerializable.toJson(this, prettyFormat);
     }
 
@@ -183,6 +198,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         this.offsetTable = offsetTable;
     }
 
+    // 查询所有消费组(过滤掉传入进来的)里面对指定topic中每一个queue消费到的最小的offset
     public Map<Integer, Long> queryMinOffsetInAllGroup(final String topic, final String filterGroups) {
 
         Map<Integer, Long> queueMinOffset = new HashMap<Integer, Long>();

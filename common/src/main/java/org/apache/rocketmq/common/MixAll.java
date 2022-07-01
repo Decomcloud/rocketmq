@@ -138,6 +138,7 @@ public class MixAll {
         return 0;
     }
 
+    // 新文件写入到tmp中, 然后将老文件读取然后写入备份文件中, 最后在把tmp重命名
     public static void string2File(final String str, final String fileName) throws IOException {
         // 把新数据先写入tmp
         String tmpFile = fileName + ".tmp";

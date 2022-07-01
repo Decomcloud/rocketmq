@@ -29,9 +29,11 @@ public abstract class ConfigManager {
     public boolean load() {
         String fileName = null;
         try {
+            // 获取数据文件的路径
             fileName = this.configFilePath();
+            // 读取json为字符串
             String jsonString = MixAll.file2String(fileName);
-
+            //如果没有, 那么就尝试加载bak文件中的信息
             if (null == jsonString || jsonString.length() == 0) {
                 return this.loadBak();
             } else {
@@ -67,11 +69,15 @@ public abstract class ConfigManager {
 
     public abstract void decode(final String jsonString);
 
+    // 持久化对应的数据到磁盘
+    // 持久化时, 新文件写入到tmp中, 然后将老文件读取然后写入备份文件中, 最后在把tmp重命名
     public synchronized void persist() {
+        // 调用各自的序列化方法
         String jsonString = this.encode(true);
         if (jsonString != null) {
             String fileName = this.configFilePath();
             try {
+                // 写入磁盘文件
                 MixAll.string2File(jsonString, fileName);
             } catch (IOException e) {
                 log.error("persist file " + fileName + " exception", e);
