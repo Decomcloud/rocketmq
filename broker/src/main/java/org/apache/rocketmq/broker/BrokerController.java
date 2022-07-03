@@ -132,7 +132,7 @@ public class BrokerController {
     // 调度线程池
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
             "BrokerControllerScheduledThread"));
-    // 主从同步
+    // 主从同步, 从broker向name server拉取
     private final SlaveSynchronize slaveSynchronize;
     // filter server管理
     private final FilterServerManager filterServerManager;
@@ -1198,6 +1198,7 @@ public class BrokerController {
                 slaveSyncFuture.cancel(false);
             }
             this.slaveSynchronize.setMasterAddr(null);
+            // 延迟3s, 每10s同步一次数据
             slaveSyncFuture = this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
