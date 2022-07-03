@@ -129,7 +129,6 @@ public class BrokerController {
     private FileWatchService fileWatchService;
 
     // broker自有组件
-    private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
     // 调度线程池
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
             "BrokerControllerScheduledThread"));
@@ -173,7 +172,8 @@ public class BrokerController {
     private final PullRequestHoldService pullRequestHoldService;
     private final SubscriptionGroupManager subscriptionGroupManager;
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
-
+    // consumer重平衡时候的锁管理
+    private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
     // 事务消息 高阶特性组件
     private TransactionalMessageCheckService transactionalMessageCheckService;
     private TransactionalMessageService transactionalMessageService;
