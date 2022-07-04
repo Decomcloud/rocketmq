@@ -28,10 +28,9 @@ public class NotifyMessageArrivingListener implements MessageArrivingListener {
         this.pullRequestHoldService = pullRequestHoldService;
     }
 
+    // 主动通知长连接消息到达
     @Override
-    public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
-        long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
-        this.pullRequestHoldService.notifyMessageArriving(topic, queueId, logicOffset, tagsCode,
-            msgStoreTime, filterBitMap, properties);
+    public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
+        this.pullRequestHoldService.notifyMessageArriving(topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties);
     }
 }

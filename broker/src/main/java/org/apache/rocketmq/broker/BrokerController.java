@@ -153,8 +153,6 @@ public class BrokerController {
     private Future<?> slaveSyncFuture;
     // 访问校验
     private Map<Class,AccessValidator> accessValidatorMap = new HashMap<Class, AccessValidator>();
-    // 消息到达监听器
-    private final MessageArrivingListener messageArrivingListener;
 
     // producer生产者有关
     private final ProducerManager producerManager;
@@ -171,6 +169,8 @@ public class BrokerController {
     // 消息拉取
     private final PullMessageProcessor pullMessageProcessor;
     private final PullRequestHoldService pullRequestHoldService;
+    // 消息到达监听器
+    private final MessageArrivingListener messageArrivingListener;
     private final SubscriptionGroupManager subscriptionGroupManager;
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
     // consumer重平衡时候的锁管理
@@ -930,7 +930,7 @@ public class BrokerController {
         if (this.brokerOuterAPI != null) {
             this.brokerOuterAPI.start();
         }
-
+        // 启动通知在长轮询中有消息到达的定时任务
         if (this.pullRequestHoldService != null) {
             this.pullRequestHoldService.start();
         }

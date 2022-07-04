@@ -415,7 +415,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                     }
                     break;
                 case ResponseCode.PULL_NOT_FOUND:
-
+                    // 没有拉取到消息, 判断是否允许挂起
                     if (brokerAllowSuspend && hasSuspendFlag) {
                         long pollingTimeMills = suspendTimeoutMillisLong;
                         if (!this.brokerController.getBrokerConfig().isLongPollingEnable()) {
@@ -427,6 +427,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                         int queueId = requestHeader.getQueueId();
                         PullRequest pullRequest = new PullRequest(request, channel, pollingTimeMills,
                             this.brokerController.getMessageStore().now(), offset, subscriptionData, messageFilter);
+                        // 挂起, response = null, 这时候如果response为null, 不会发送响应回去
                         this.brokerController.getPullRequestHoldService().suspendPullRequest(topic, queueId, pullRequest);
                         response = null;
                         break;
@@ -555,8 +556,8 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
         }
     }
 
-    public void executeRequestWhenWakeup(final Channel channel,
-        final RemotingCommand request) throws RemotingCommandException {
+    // 长轮询等待时, 有新消息到达, 开始重新拉取消息
+    public void executeRequestWhenWakeup(final Channel channel, final RemotingCommand request) throws RemotingCommandException {
         Runnable run = new Runnable() {
             @Override
             public void run() {
@@ -571,8 +572,7 @@ public class PullMessageProcessor extends AsyncNettyRequestProcessor implements 
                                 @Override
                                 public void operationComplete(ChannelFuture future) throws Exception {
                                     if (!future.isSuccess()) {
-                                        log.error("processRequestWrapper response to {} failed",
-                                            future.channel().remoteAddress(), future.cause());
+                                        log.error("processRequestWrapper response to {} failed", future.channel().remoteAddress(), future.cause());
                                         log.error(request.toString());
                                         log.error(response.toString());
                                     }
