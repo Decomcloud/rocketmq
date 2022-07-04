@@ -40,8 +40,11 @@ public class ConsumerGroupInfo {
     // 消费组和broker之间的网络连接
     private final ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable =
         new ConcurrentHashMap<Channel, ClientChannelInfo>(16);
+    // 消费类型, pull/push
     private volatile ConsumeType consumeType;
+    // 消息类型 broadcasting -> 每个消费者都可以拉取到所有的消息  clustering -> 集群模式, 每个消费者拉取到部分消息
     private volatile MessageModel messageModel;
+    // 消费策略
     private volatile ConsumeFromWhere consumeFromWhere;
     private volatile long lastUpdateTimestamp = System.currentTimeMillis();
 
@@ -114,8 +117,7 @@ public class ConsumerGroupInfo {
         return false;
     }
 
-    public boolean updateChannel(final ClientChannelInfo infoNew, ConsumeType consumeType,
-        MessageModel messageModel, ConsumeFromWhere consumeFromWhere) {
+    public boolean updateChannel(final ClientChannelInfo infoNew, ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere) {
         boolean updated = false;
         this.consumeType = consumeType;
         this.messageModel = messageModel;
@@ -162,11 +164,7 @@ public class ConsumerGroupInfo {
                 }
             } else if (sub.getSubVersion() > old.getSubVersion()) {
                 if (this.consumeType == ConsumeType.CONSUME_PASSIVELY) {
-                    log.info("subscription changed, group: {} OLD: {} NEW: {}",
-                        this.groupName,
-                        old.toString(),
-                        sub.toString()
-                    );
+                    log.info("subscription changed, group: {} OLD: {} NEW: {}", this.groupName, old.toString(), sub.toString());
                 }
 
                 this.subscriptionTable.put(sub.getTopic(), sub);
@@ -185,14 +183,9 @@ public class ConsumerGroupInfo {
                     break;
                 }
             }
-
+            // 当前topic没有消费者订阅, 直接移除
             if (!exist) {
-                log.warn("subscription changed, group: {} remove topic {} {}",
-                    this.groupName,
-                    oldTopic,
-                    next.getValue().toString()
-                );
-
+                log.warn("subscription changed, group: {} remove topic {} {}", this.groupName, oldTopic, next.getValue().toString());
                 it.remove();
                 updated = true;
             }

@@ -164,6 +164,7 @@ public class BrokerController {
     // consumer消费者相关
     // consumer消费时候的offset管理组件
     private final ConsumerOffsetManager consumerOffsetManager;
+    // 消费者管理组件
     private final ConsumerManager consumerManager;
     private final ConsumerFilterManager consumerFilterManager;
     // 消息拉取

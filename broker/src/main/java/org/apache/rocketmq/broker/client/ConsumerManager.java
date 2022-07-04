@@ -36,8 +36,7 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 public class ConsumerManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
-    private final ConcurrentMap<String/* Group */, ConsumerGroupInfo> consumerTable =
-        new ConcurrentHashMap<String, ConsumerGroupInfo>(1024);
+    private final ConcurrentMap<String/* Group */, ConsumerGroupInfo> consumerTable = new ConcurrentHashMap<String, ConsumerGroupInfo>(1024);
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
 
     public ConsumerManager(final ConsumerIdsChangeListener consumerIdsChangeListener) {
@@ -105,10 +104,9 @@ public class ConsumerManager {
             ConsumerGroupInfo prev = this.consumerTable.putIfAbsent(group, tmp);
             consumerGroupInfo = prev != null ? prev : tmp;
         }
-
-        boolean r1 =
-            consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel,
-                consumeFromWhere);
+        // 更新下网络连接
+        boolean r1 = consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel, consumeFromWhere);
+        // 更新消费订阅
         boolean r2 = consumerGroupInfo.updateSubscription(subList);
 
         if (r1 || r2) {
@@ -141,45 +139,42 @@ public class ConsumerManager {
         }
     }
 
+    // 扫描2min内没有通信的连接, 关闭掉
     public void scanNotActiveChannel() {
         Iterator<Entry<String, ConsumerGroupInfo>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, ConsumerGroupInfo> next = it.next();
             String group = next.getKey();
             ConsumerGroupInfo consumerGroupInfo = next.getValue();
-            ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable =
-                consumerGroupInfo.getChannelInfoTable();
+            ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable = consumerGroupInfo.getChannelInfoTable();
 
             Iterator<Entry<Channel, ClientChannelInfo>> itChannel = channelInfoTable.entrySet().iterator();
             while (itChannel.hasNext()) {
                 Entry<Channel, ClientChannelInfo> nextChannel = itChannel.next();
                 ClientChannelInfo clientChannelInfo = nextChannel.getValue();
                 long diff = System.currentTimeMillis() - clientChannelInfo.getLastUpdateTimestamp();
+                // 120s没有更新
                 if (diff > CHANNEL_EXPIRED_TIMEOUT) {
-                    log.warn(
-                        "SCAN: remove expired channel from ConsumerManager consumerTable. channel={}, consumerGroup={}",
-                        RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel()), group);
+                    log.warn("SCAN: remove expired channel from ConsumerManager consumerTable. channel={}, consumerGroup={}", RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel()), group);
                     RemotingUtil.closeChannel(clientChannelInfo.getChannel());
                     itChannel.remove();
                 }
             }
 
             if (channelInfoTable.isEmpty()) {
-                log.warn(
-                    "SCAN: remove expired channel from ConsumerManager consumerTable, all clear, consumerGroup={}",
-                    group);
+                log.warn("SCAN: remove expired channel from ConsumerManager consumerTable, all clear, consumerGroup={}", group);
                 it.remove();
             }
         }
     }
 
+    // 查询订阅该topic的group信息
     public HashSet<String> queryTopicConsumeByWho(final String topic) {
         HashSet<String> groups = new HashSet<>();
         Iterator<Entry<String, ConsumerGroupInfo>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, ConsumerGroupInfo> entry = it.next();
-            ConcurrentMap<String, SubscriptionData> subscriptionTable =
-                entry.getValue().getSubscriptionTable();
+            ConcurrentMap<String, SubscriptionData> subscriptionTable = entry.getValue().getSubscriptionTable();
             if (subscriptionTable.containsKey(topic)) {
                 groups.add(entry.getKey());
             }
