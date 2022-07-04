@@ -231,6 +231,7 @@ public class BrokerController {
         this.pullMessageProcessor = new PullMessageProcessor(this);
         this.pullRequestHoldService = messageStoreConfig.isEnableLmq() ? new LmqPullRequestHoldService(this) : new PullRequestHoldService(this);
         this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService);
+        // 消费者id变化通知组件
         this.consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
         this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener);
         this.consumerFilterManager = new ConsumerFilterManager(this);
