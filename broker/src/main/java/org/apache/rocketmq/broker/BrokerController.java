@@ -192,7 +192,7 @@ public class BrokerController {
     private final ClientHousekeepingService clientHousekeepingService;
     // broker对客户端网络通信
     private final Broker2Client broker2Client;
-    // broker对name server通信组件
+    // broker和name server通信组件
     private final BrokerOuterAPI brokerOuterAPI;
     private RemotingServer remotingServer;
     private RemotingServer fastRemotingServer;
