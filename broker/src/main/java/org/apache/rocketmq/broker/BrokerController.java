@@ -166,6 +166,7 @@ public class BrokerController {
     private final ConsumerOffsetManager consumerOffsetManager;
     // 消费者管理组件
     private final ConsumerManager consumerManager;
+    // 消息过滤
     private final ConsumerFilterManager consumerFilterManager;
     // 消息拉取
     private final PullMessageProcessor pullMessageProcessor;

@@ -47,10 +47,10 @@ public class ConsumerFilterManager extends ConfigManager {
 
     private static final long MS_24_HOUR = 24 * 3600 * 1000;
 
-    private ConcurrentMap<String/*Topic*/, FilterDataMapByTopic>
-        filterDataByTopic = new ConcurrentHashMap<String/*Topic*/, FilterDataMapByTopic>(256);
+    private ConcurrentMap<String/*Topic*/, FilterDataMapByTopic> filterDataByTopic = new ConcurrentHashMap<String/*Topic*/, FilterDataMapByTopic>(256);
 
     private transient BrokerController brokerController;
+    // 布隆过滤器, bit位数组, 写入数据hash更新bit位01, 查询时, 计算查询数据的hash, 如果是0, 肯定没有, 如果是1, 可能有, 也可能没有
     private transient BloomFilter bloomFilter;
 
     public ConsumerFilterManager() {
@@ -75,9 +75,7 @@ public class ConsumerFilterManager extends ConfigManager {
      *
      * @return maybe null
      */
-    public static ConsumerFilterData build(final String topic, final String consumerGroup,
-        final String expression, final String type,
-        final long clientVersion) {
+    public static ConsumerFilterData build(final String topic, final String consumerGroup, final String expression, final String type, final long clientVersion) {
         if (ExpressionType.isTagType(type)) {
             return null;
         }
@@ -91,9 +89,7 @@ public class ConsumerFilterManager extends ConfigManager {
         consumerFilterData.setExpressionType(type);
         consumerFilterData.setClientVersion(clientVersion);
         try {
-            consumerFilterData.setCompiledExpression(
-                FilterFactory.INSTANCE.get(type).compile(expression)
-            );
+            consumerFilterData.setCompiledExpression(FilterFactory.INSTANCE.get(type).compile(expression));
         } catch (Throwable e) {
             log.error("parse error: expr={}, topic={}, group={}, error={}", expression, topic, consumerGroup, e.getMessage());
             return null;
@@ -104,13 +100,7 @@ public class ConsumerFilterManager extends ConfigManager {
 
     public void register(final String consumerGroup, final Collection<SubscriptionData> subList) {
         for (SubscriptionData subscriptionData : subList) {
-            register(
-                subscriptionData.getTopic(),
-                consumerGroup,
-                subscriptionData.getSubString(),
-                subscriptionData.getExpressionType(),
-                subscriptionData.getSubVersion()
-            );
+            register(subscriptionData.getTopic(), consumerGroup, subscriptionData.getSubString(), subscriptionData.getExpressionType(), subscriptionData.getSubVersion());
         }
 
         // make illegal topic dead.
@@ -127,7 +117,7 @@ public class ConsumerFilterManager extends ConfigManager {
                     break;
                 }
             }
-
+            // 失效掉
             if (!exist && !filterData.isDead()) {
                 filterData.setDeadTime(System.currentTimeMillis());
                 log.info("Consumer filter changed: {}, make illegal topic dead:{}", consumerGroup, filterData);
@@ -135,8 +125,7 @@ public class ConsumerFilterManager extends ConfigManager {
         }
     }
 
-    public boolean register(final String topic, final String consumerGroup, final String expression,
-        final String type, final long clientVersion) {
+    public boolean register(final String topic, final String consumerGroup, final String expression, final String type, final long clientVersion) {
         if (ExpressionType.isTagType(type)) {
             return false;
         }
@@ -322,9 +311,8 @@ public class ConsumerFilterManager extends ConfigManager {
     }
 
     public static class FilterDataMapByTopic {
-
-        private ConcurrentMap<String/*consumer group*/, ConsumerFilterData>
-            groupFilterData = new ConcurrentHashMap<String, ConsumerFilterData>();
+        // 每个topic中不同的consumer group中的过滤数据
+        private ConcurrentMap<String/*consumer group*/, ConsumerFilterData> groupFilterData = new ConcurrentHashMap<String, ConsumerFilterData>();
 
         private String topic;
 
@@ -353,8 +341,7 @@ public class ConsumerFilterManager extends ConfigManager {
             data.setDeadTime(now);
         }
 
-        public boolean register(String consumerGroup, String expression, String type, BloomFilterData bloomFilterData,
-            long clientVersion) {
+        public boolean register(String consumerGroup, String expression, String type, BloomFilterData bloomFilterData, long clientVersion) {
             ConsumerFilterData old = this.groupFilterData.get(consumerGroup);
 
             if (old == null) {
@@ -365,10 +352,12 @@ public class ConsumerFilterManager extends ConfigManager {
                 consumerFilterData.setBloomFilterData(bloomFilterData);
 
                 old = this.groupFilterData.putIfAbsent(consumerGroup, consumerFilterData);
+                // 放入成功
                 if (old == null) {
                     log.info("New consumer filter registered: {}", consumerFilterData);
                     return true;
                 } else {
+                    // 已经存在
                     if (clientVersion <= old.getClientVersion()) {
                         if (!type.equals(old.getExpressionType()) || !expression.equals(old.getExpression())) {
                             log.warn("Ignore consumer({} : {}) filter(concurrent), because of version {} <= {}, but maybe info changed!old={}:{}, ignored={}:{}",
@@ -381,15 +370,16 @@ public class ConsumerFilterManager extends ConfigManager {
                             reAlive(old);
                             return true;
                         }
-
                         return false;
                     } else {
+                        // version大, 直接更新
                         this.groupFilterData.put(consumerGroup, consumerFilterData);
                         log.info("New consumer filter registered(concurrent): {}, old: {}", consumerFilterData, old);
                         return true;
                     }
                 }
             } else {
+                // 已经存在
                 if (clientVersion <= old.getClientVersion()) {
                     if (!type.equals(old.getExpressionType()) || !expression.equals(old.getExpression())) {
                         log.info("Ignore consumer({}:{}) filter, because of version {} <= {}, but maybe info changed!old={}:{}, ignored={}:{}",
@@ -405,8 +395,9 @@ public class ConsumerFilterManager extends ConfigManager {
 
                     return false;
                 }
-
+                // 新version比较大
                 boolean change = !old.getExpression().equals(expression) || !old.getExpressionType().equals(type);
+                // 布隆过滤器有变化
                 if (old.getBloomFilterData() == null && bloomFilterData != null) {
                     change = true;
                 }
@@ -426,8 +417,7 @@ public class ConsumerFilterManager extends ConfigManager {
 
                     this.groupFilterData.put(consumerGroup, consumerFilterData);
 
-                    log.info("Consumer filter info change, old: {}, new: {}, change: {}",
-                        old, consumerFilterData, change);
+                    log.info("Consumer filter info change, old: {}, new: {}, change: {}", old, consumerFilterData, change);
 
                     return true;
                 } else {
