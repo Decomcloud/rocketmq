@@ -188,7 +188,7 @@ public class BrokerController {
 
     // 网络连接异常监听组件, 包括定时任务移除不活跃
     private final ClientHousekeepingService clientHousekeepingService;
-    // broker对客户端管理组件
+    // broker对客户端网络通信
     private final Broker2Client broker2Client;
     // broker对name server通信组件
     private final BrokerOuterAPI brokerOuterAPI;
