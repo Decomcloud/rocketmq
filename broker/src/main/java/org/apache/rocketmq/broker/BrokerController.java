@@ -185,6 +185,7 @@ public class BrokerController {
 
     // 网络通信
     // 客户端网络连接事件监听组件
+
     // 网络连接异常监听组件, 包括定时任务移除不活跃
     private final ClientHousekeepingService clientHousekeepingService;
     // broker对客户端管理组件
