@@ -155,6 +155,7 @@ public class BrokerController {
     private Map<Class,AccessValidator> accessValidatorMap = new HashMap<Class, AccessValidator>();
 
     // producer生产者有关
+    // 生产者管理组件
     private final ProducerManager producerManager;
 
     // 数据存储
