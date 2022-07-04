@@ -169,12 +169,14 @@ public class BrokerController {
     private final ConsumerManager consumerManager;
     // 消息过滤
     private final ConsumerFilterManager consumerFilterManager;
+    // 订阅组管理组件
+    private final SubscriptionGroupManager subscriptionGroupManager;
     // 消息拉取
     private final PullMessageProcessor pullMessageProcessor;
     private final PullRequestHoldService pullRequestHoldService;
     // 消息到达监听器
     private final MessageArrivingListener messageArrivingListener;
-    private final SubscriptionGroupManager subscriptionGroupManager;
+
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
     // consumer重平衡时候的锁管理
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
