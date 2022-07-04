@@ -37,6 +37,7 @@ public class ConsumerGroupInfo {
     private final String groupName;
     private final ConcurrentMap<String/* Topic */, SubscriptionData> subscriptionTable =
         new ConcurrentHashMap<String, SubscriptionData>();
+    // 消费组和broker之间的网络连接
     private final ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable =
         new ConcurrentHashMap<Channel, ClientChannelInfo>(16);
     private volatile ConsumeType consumeType;

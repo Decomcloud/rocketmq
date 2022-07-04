@@ -168,6 +168,7 @@ public class BrokerController {
     private final ConsumerOffsetManager consumerOffsetManager;
     private final ConsumerManager consumerManager;
     private final ConsumerFilterManager consumerFilterManager;
+    // 消息拉取
     private final PullMessageProcessor pullMessageProcessor;
     private final PullRequestHoldService pullRequestHoldService;
     private final SubscriptionGroupManager subscriptionGroupManager;
