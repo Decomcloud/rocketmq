@@ -146,7 +146,7 @@ public class BrokerController {
     private final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<ConsumeMessageHook>();
     // broker负责topic管理元数据的组件
     private TopicConfigManager topicConfigManager;
-    // broker快速失败
+    // broker快速失败, 流控等
     private BrokerFastFailure brokerFastFailure;
     // 是否启用周期性更新master节点的ha高可用服务器地址的功能
     private boolean updateMasterHAServerAddrPeriodically = false;

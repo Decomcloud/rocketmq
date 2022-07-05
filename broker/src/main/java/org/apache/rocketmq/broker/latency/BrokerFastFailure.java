@@ -63,6 +63,7 @@ public class BrokerFastFailure {
     }
 
     private void cleanExpiredRequest() {
+        // os cache busy, 快速失败
         while (this.brokerController.getMessageStore().isOSPageCacheBusy()) {
             try {
                 if (!this.brokerController.getSendThreadPoolQueue().isEmpty()) {
@@ -93,6 +94,7 @@ public class BrokerFastFailure {
             .brokerController.getBrokerConfig().getWaitTimeMillsInTransactionQueue());
     }
 
+    // 清理过期, 流控策略
     void cleanExpiredRequestInQueue(final BlockingQueue<Runnable> blockingQueue, final long maxWaitTimeMillsInQueue) {
         while (true) {
             try {
