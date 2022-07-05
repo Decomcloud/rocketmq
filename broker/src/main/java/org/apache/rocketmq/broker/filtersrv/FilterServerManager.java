@@ -39,12 +39,10 @@ public class FilterServerManager {
 
     public static final long FILTER_SERVER_MAX_IDLE_TIME_MILLS = 30000;
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    private final ConcurrentMap<Channel, FilterServerInfo> filterServerTable =
-        new ConcurrentHashMap<Channel, FilterServerInfo>(16);
+    private final ConcurrentMap<Channel, FilterServerInfo> filterServerTable = new ConcurrentHashMap<Channel, FilterServerInfo>(16);
     private final BrokerController brokerController;
 
-    private ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("FilterServerManagerScheduledThread"));
+    private ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("FilterServerManagerScheduledThread"));
 
     public FilterServerManager(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -65,10 +63,11 @@ public class FilterServerManager {
     }
 
     public void createFilterServer() {
-        int more =
-            this.brokerController.getBrokerConfig().getFilterServerNums() - this.filterServerTable.size();
+        // 是否需要创建filter server
+        int more = this.brokerController.getBrokerConfig().getFilterServerNums() - this.filterServerTable.size();
         String cmd = this.buildStartCommand();
         for (int i = 0; i < more; i++) {
+            // 启动缺少的filter server
             FilterServerUtil.callShell(cmd, log);
         }
     }
@@ -84,13 +83,9 @@ public class FilterServerManager {
         }
 
         if (RemotingUtil.isWindowsPlatform()) {
-            return String.format("start /b %s\\bin\\mqfiltersrv.exe %s",
-                this.brokerController.getBrokerConfig().getRocketmqHome(),
-                config);
+            return String.format("start /b %s\\bin\\mqfiltersrv.exe %s", this.brokerController.getBrokerConfig().getRocketmqHome(), config);
         } else {
-            return String.format("sh %s/bin/startfsrv.sh %s",
-                this.brokerController.getBrokerConfig().getRocketmqHome(),
-                config);
+            return String.format("sh %s/bin/startfsrv.sh %s", this.brokerController.getBrokerConfig().getRocketmqHome(), config);
         }
     }
 

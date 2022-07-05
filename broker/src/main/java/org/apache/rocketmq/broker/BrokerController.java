@@ -134,7 +134,8 @@ public class BrokerController {
             "BrokerControllerScheduledThread"));
     // 主从同步, 从broker向name server拉取
     private final SlaveSynchronize slaveSynchronize;
-    // filter server管理
+    // filter server管理组件
+    // 在broker上可以启动一个filter server
     private final FilterServerManager filterServerManager;
     // broker的统计管理
     private final BrokerStatsManager brokerStatsManager;
