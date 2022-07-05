@@ -76,7 +76,7 @@ public class DefaultMessageStore implements MessageStore {
     private final MessageStoreConfig messageStoreConfig;
     // CommitLog
     private final CommitLog commitLog;
-
+    // 消费队列核心结构
     private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
 
     private final FlushConsumeQueueService flushConsumeQueueService;
@@ -86,7 +86,7 @@ public class DefaultMessageStore implements MessageStore {
     private final CleanConsumeQueueService cleanConsumeQueueService;
 
     private final IndexService indexService;
-
+    // 映射磁盘数据到内存中
     private final AllocateMappedFileService allocateMappedFileService;
 
     private final ReputMessageService reputMessageService;

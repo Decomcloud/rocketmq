@@ -290,17 +290,19 @@ public class BrokerController {
     }
 
     public boolean initialize() throws CloneNotSupportedException {
+        // 磁盘加载topic元数据
         boolean result = this.topicConfigManager.load();
-
+        // 磁盘加载消费偏移量
         result = result && this.consumerOffsetManager.load();
+        // 磁盘加载consumer group
         result = result && this.subscriptionGroupManager.load();
+        // 磁盘加载过滤器
         result = result && this.consumerFilterManager.load();
 
         if (result) {
             try {
-                this.messageStore =
-                    new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener,
-                        this.brokerConfig);
+                this.messageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig);
+                // 启动dLeger
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, (DefaultMessageStore) messageStore);
                     ((DLedgerCommitLog)((DefaultMessageStore) messageStore).getCommitLog()).getdLedgerServer().getdLedgerLeaderElector().addRoleChangeHandler(roleChangeHandler);
