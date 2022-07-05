@@ -46,6 +46,7 @@ public class TransientStorePool {
     /**
      * It's a heavy init method.
      */
+    // 分配出5g的缓冲区
     public void init() {
         for (int i = 0; i < poolSize; i++) {
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(fileSize);
