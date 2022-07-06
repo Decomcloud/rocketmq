@@ -149,8 +149,9 @@ public class CommitLog {
         flushDiskWatcher.setDaemon(true);
         flushDiskWatcher.start();
 
-
+        // 启用了池化技术
         if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
+            // 每隔200ms把write buffer中的数据刷入到file channel中, 在唤醒flushCommitLogService, 将其刷入到磁盘中
             this.commitLogService.start();
         }
     }
@@ -1043,8 +1044,11 @@ public class CommitLog {
                 try {
                     boolean result = CommitLog.this.mappedFileQueue.commit(commitDataLeastPages);
                     long end = System.currentTimeMillis();
+                    // result = false means some data committed.
+                    // write buffer刷入到了file channel一些数据
+                    // 唤醒FlushRealTimeService, 继续去把write buffer写入到file channel中的数据真正的刷入到物理磁盘中
                     if (!result) {
-                        this.lastCommitTimestamp = end; // result = false means some data committed.
+                        this.lastCommitTimestamp = end;
                         //now wake up flush thread.
                         flushCommitLogService.wakeup();
                     }
@@ -1098,6 +1102,7 @@ public class CommitLog {
                     if (flushCommitLogTimed) {
                         Thread.sleep(interval);
                     } else {
+                        // 可能会被CommitRealTimeService唤醒, 把它从write buffer刷入到file channel中的数据刷入到磁盘
                         this.waitForRunning(interval);
                     }
 

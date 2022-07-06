@@ -323,6 +323,7 @@ public class MappedFile extends ReferenceResource {
             //no need to commit data to file channel, so just regard wrotePosition as committedPosition.
             return this.wrotePosition.get();
         }
+        // 有可以提交的, 刷入write buffer到file channel映射的内存中
         if (this.isAbleToCommit(commitLeastPages)) {
             if (this.hold()) {
                 commit0();
@@ -341,10 +342,11 @@ public class MappedFile extends ReferenceResource {
         return this.committedPosition.get();
     }
 
+    // 将write buffer刷入到file channel, 也就是映射的内存中
     protected void commit0() {
         int writePos = this.wrotePosition.get();
         int lastCommittedPosition = this.committedPosition.get();
-
+        // 有可以提交的
         if (writePos - lastCommittedPosition > 0) {
             try {
                 ByteBuffer byteBuffer = writeBuffer.slice();

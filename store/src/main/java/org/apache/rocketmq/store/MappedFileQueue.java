@@ -457,8 +457,10 @@ public class MappedFileQueue {
         boolean result = true;
         MappedFile mappedFile = this.findMappedFileByOffset(this.committedWhere, this.committedWhere == 0);
         if (mappedFile != null) {
+            // 将write buffer刷入到file channel映射的内存中
             int offset = mappedFile.commit(commitLeastPages);
             long where = mappedFile.getFileFromOffset() + offset;
+            // 如果不相同, 意味者刷入到磁盘一些数据
             result = where == this.committedWhere;
             this.committedWhere = where;
         }
