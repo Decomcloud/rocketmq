@@ -46,6 +46,7 @@ public class FlushDiskWatcher extends ServiceThread {
             }
             while (!request.future().isDone()) {
                 long now = System.nanoTime();
+                // 超时
                 if (now - request.getDeadLine() >= 0) {
                     request.wakeupCustomer(PutMessageStatus.FLUSH_DISK_TIMEOUT);
                     break;

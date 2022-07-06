@@ -145,7 +145,7 @@ public class CommitLog {
     public void start() {
         // 启动刷新文件的线程
         this.flushCommitLogService.start();
-
+        // 刷盘超时监控
         flushDiskWatcher.setDaemon(true);
         flushDiskWatcher.start();
 
