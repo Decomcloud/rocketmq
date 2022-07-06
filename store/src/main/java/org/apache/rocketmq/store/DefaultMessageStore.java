@@ -134,7 +134,9 @@ public class DefaultMessageStore implements MessageStore {
         this.messageStoreConfig = messageStoreConfig;
         this.brokerStatsManager = brokerStatsManager;
         this.allocateMappedFileService = new AllocateMappedFileService(this);
+        // commit log
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
+            // broker组, leader写入数据放在store里面, 同步给至少一个follower才算成功
             this.commitLog = new DLedgerCommitLog(this);
         } else {
             this.commitLog = new CommitLog(this);
@@ -197,6 +199,7 @@ public class DefaultMessageStore implements MessageStore {
             log.info("last shutdown {}", lastExitOK ? "normally" : "abnormally");
 
             // load Commit Log
+            // 加载磁盘文件到内存中
             result = result && this.commitLog.load();
 
             // load Consume Queue
@@ -296,6 +299,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         this.flushConsumeQueueService.start();
+        // 启动commit log
         this.commitLog.start();
         this.storeStatsService.start();
 

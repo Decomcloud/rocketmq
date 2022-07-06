@@ -83,21 +83,27 @@ public class CommitLog {
 
     public CommitLog(final DefaultMessageStore defaultMessageStore) {
         String storePath = defaultMessageStore.getMessageStoreConfig().getStorePathCommitLog();
+        // 存储路径是多个, 通过,分割
         if (storePath.contains(MessageStoreConfig.MULTI_PATH_SPLITTER)) {
-            this.mappedFileQueue = new MultiPathMappedFileQueue(defaultMessageStore.getMessageStoreConfig(),
+            this.mappedFileQueue = new MultiPathMappedFileQueue(
+                    defaultMessageStore.getMessageStoreConfig(),
                     defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
-                    defaultMessageStore.getAllocateMappedFileService(), this::getFullStorePaths);
+                    defaultMessageStore.getAllocateMappedFileService(),
+                    this::getFullStorePaths);
         } else {
-            this.mappedFileQueue = new MappedFileQueue(storePath,
+            // 正常情况是普通的单个存储
+            this.mappedFileQueue = new MappedFileQueue(
+                    storePath,
                     defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
                     defaultMessageStore.getAllocateMappedFileService());
         }
 
         this.defaultMessageStore = defaultMessageStore;
-
+        // 刷新磁盘数据
         if (FlushDiskType.SYNC_FLUSH == defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
             this.flushCommitLogService = new GroupCommitService();
         } else {
+            // 每500ms刷新
             this.flushCommitLogService = new FlushRealTimeService();
         }
 
@@ -129,6 +135,7 @@ public class CommitLog {
         return putMessageThreadLocal;
     }
 
+    // 将磁盘中的文件加载到内存中,dLedger模式不会用这个
     public boolean load() {
         boolean result = this.mappedFileQueue.load();
         log.info("load commit log " + (result ? "OK" : "Failed"));
@@ -136,6 +143,7 @@ public class CommitLog {
     }
 
     public void start() {
+        // 启动刷新文件的线程
         this.flushCommitLogService.start();
 
         flushDiskWatcher.setDaemon(true);
@@ -1068,10 +1076,11 @@ public class CommitLog {
 
             while (!this.isStopped()) {
                 boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
-
+                // 默认500ms刷新间隔
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
+                // 最小的刷新页数, 默认是4
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
-
+                // 默认超过10s全部刷新一次
                 int flushPhysicQueueThoroughInterval =
                     CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
 
@@ -1097,9 +1106,11 @@ public class CommitLog {
                     }
 
                     long begin = System.currentTimeMillis();
+                    // 刷新到磁盘上
                     CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
                     long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
                     if (storeTimestamp > 0) {
+                        // 保存下存储的时间戳
                         CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
                     }
                     long past = System.currentTimeMillis() - begin;

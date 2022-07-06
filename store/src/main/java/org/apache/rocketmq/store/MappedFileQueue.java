@@ -161,14 +161,13 @@ public class MappedFileQueue {
 
         for (File file : files) {
             if (file.length() != this.mappedFileSize) {
-                log.warn(file + "\t" + file.length()
-                        + " length not matched message store config value, please check it manually");
+                log.warn(file + "\t" + file.length() + " length not matched message store config value, please check it manually");
                 return false;
             }
 
             try {
+                // 直接封装磁盘文件位mapped file, 在更新下定位信息等
                 MappedFile mappedFile = new MappedFile(file.getPath(), mappedFileSize);
-
                 mappedFile.setWrotePosition(this.mappedFileSize);
                 mappedFile.setFlushedPosition(this.mappedFileSize);
                 mappedFile.setCommittedPosition(this.mappedFileSize);
@@ -438,6 +437,7 @@ public class MappedFileQueue {
 
     public boolean flush(final int flushLeastPages) {
         boolean result = true;
+        // 根据刷新的偏移量来寻找需要刷新的mapped file
         MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0);
         if (mappedFile != null) {
             long tmpTimeStamp = mappedFile.getStoreTimestamp();
@@ -475,9 +475,11 @@ public class MappedFileQueue {
      */
     public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
         try {
+            // 取出最小偏移量和最大偏移量的文件
             MappedFile firstMappedFile = this.getFirstMappedFile();
             MappedFile lastMappedFile = this.getLastMappedFile();
             if (firstMappedFile != null && lastMappedFile != null) {
+                // 超出了偏移量范围
                 if (offset < firstMappedFile.getFileFromOffset() || offset >= lastMappedFile.getFileFromOffset() + this.mappedFileSize) {
                     LOG_ERROR.warn("Offset not matched. Request offset: {}, firstOffset: {}, lastOffset: {}, mappedFileSize: {}, mappedFiles count: {}",
                         offset,
@@ -486,26 +488,25 @@ public class MappedFileQueue {
                         this.mappedFileSize,
                         this.mappedFiles.size());
                 } else {
+                    // 计算出是第几个文件
                     int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
                     MappedFile targetFile = null;
                     try {
                         targetFile = this.mappedFiles.get(index);
                     } catch (Exception ignored) {
                     }
-
-                    if (targetFile != null && offset >= targetFile.getFileFromOffset()
-                        && offset < targetFile.getFileFromOffset() + this.mappedFileSize) {
+                    // 符合要求, 在范围内
+                    if (targetFile != null && offset >= targetFile.getFileFromOffset() && offset < targetFile.getFileFromOffset() + this.mappedFileSize) {
                         return targetFile;
                     }
-
+                    // 计算失败, 可能是文件偏移量存储不符合正常逻辑, 遍历寻找
                     for (MappedFile tmpMappedFile : this.mappedFiles) {
-                        if (offset >= tmpMappedFile.getFileFromOffset()
-                            && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
+                        if (offset >= tmpMappedFile.getFileFromOffset() && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
                             return tmpMappedFile;
                         }
                     }
                 }
-
+                // 没有找到看看是否需要返回第一个
                 if (returnFirstOnNotFound) {
                     return firstMappedFile;
                 }
