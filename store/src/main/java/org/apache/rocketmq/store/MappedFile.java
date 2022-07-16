@@ -102,8 +102,10 @@ public class MappedFile extends ReferenceResource {
     }
 
     public static void clean(final ByteBuffer buffer) {
+        // buffer是堆内内存才能被清理
         if (buffer == null || !buffer.isDirect() || buffer.capacity() == 0)
             return;
+        // 调用cleaner, 继续调用clean
         invoke(invoke(viewed(buffer), "cleaner"), "clean");
     }
 
@@ -133,6 +135,7 @@ public class MappedFile extends ReferenceResource {
     private static ByteBuffer viewed(ByteBuffer buffer) {
         String methodName = "viewedBuffer";
         Method[] methods = buffer.getClass().getMethods();
+        // 有attachment就用这个, 否则就用默认的viewedBuffer
         for (int i = 0; i < methods.length; i++) {
             if (methods[i].getName().equals("attachment")) {
                 methodName = "attachment";
@@ -144,6 +147,7 @@ public class MappedFile extends ReferenceResource {
         if (viewedBuffer == null)
             return buffer;
         else
+            // 不是viewedBuffer就继续调用, 防止原生的buffer被包裹起来, 需要一层一层拨开
             return viewed(viewedBuffer);
     }
 
@@ -455,6 +459,7 @@ public class MappedFile extends ReferenceResource {
         }
 
         clean(this.mappedByteBuffer);
+        // 更新
         TOTAL_MAPPED_VIRTUAL_MEMORY.addAndGet(this.fileSize * (-1));
         TOTAL_MAPPED_FILES.decrementAndGet();
         log.info("unmap file[REF:" + currentRef + "] " + this.fileName + " OK");
@@ -462,14 +467,17 @@ public class MappedFile extends ReferenceResource {
     }
 
     public boolean destroy(final long intervalForcibly) {
+        // 清理释放
         this.shutdown(intervalForcibly);
 
         if (this.isCleanupOver()) {
             try {
+                // 绑定mappled file的通道进行关闭
                 this.fileChannel.close();
                 log.info("close file channel " + this.fileName + " OK");
 
                 long beginTime = System.currentTimeMillis();
+                // 删除文件
                 boolean result = this.file.delete();
                 log.info("delete file[REF:" + this.getRefCount() + "] " + this.fileName
                     + (result ? " OK, " : " Failed, ") + "W:" + this.getWrotePosition() + " M:"

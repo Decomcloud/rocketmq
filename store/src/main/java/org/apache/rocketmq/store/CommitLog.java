@@ -184,6 +184,7 @@ public class CommitLog {
         return this.mappedFileQueue.remainHowManyDataToFlush();
     }
 
+    // 定期删除不用的mapped file
     public int deleteExpiredFile(
         final long expiredTime,
         final int deleteFilesInterval,
