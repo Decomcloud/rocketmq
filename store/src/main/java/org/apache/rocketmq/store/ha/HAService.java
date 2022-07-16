@@ -258,9 +258,11 @@ public class HAService {
         private volatile LinkedList<CommitLog.GroupCommitRequest> requestsWrite = new LinkedList<>();
         private volatile LinkedList<CommitLog.GroupCommitRequest> requestsRead = new LinkedList<>();
 
+        // 放入新的请求
         public void putRequest(final CommitLog.GroupCommitRequest request) {
             lock.lock();
             try {
+                // 加入到写队列中
                 this.requestsWrite.add(request);
             } finally {
                 lock.unlock();
@@ -286,6 +288,7 @@ public class HAService {
         private void doWaitTransfer() {
             if (!this.requestsRead.isEmpty()) {
                 for (CommitLog.GroupCommitRequest req : this.requestsRead) {
+                    // 已经发送的最大偏移量是否大于要发送的偏移量, 如果大于, 说明已经发送过了, 就是true
                     boolean transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
                     long deadLine = req.getDeadLine();
                     while (!transferOK && deadLine - System.nanoTime() > 0) {
@@ -305,6 +308,7 @@ public class HAService {
 
             while (!this.isStopped()) {
                 try {
+                    // 等待结束后会调用swapRequests
                     this.waitForRunning(10);
                     this.doWaitTransfer();
                 } catch (Exception e) {
