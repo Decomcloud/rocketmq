@@ -432,9 +432,11 @@ public class MappedFile extends ReferenceResource {
         int readPosition = getReadPosition();
         if (pos < readPosition && pos >= 0) {
             if (this.hold()) {
+                // 获取当前可用的一段内存
                 ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
                 byteBuffer.position(pos);
                 int size = readPosition - pos;
+                // 从pos开始在获取到可读的最大内存
                 ByteBuffer byteBufferNew = byteBuffer.slice();
                 byteBufferNew.limit(size);
                 return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);

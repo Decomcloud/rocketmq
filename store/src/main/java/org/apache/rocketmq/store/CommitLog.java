@@ -201,8 +201,11 @@ public class CommitLog {
         return this.getData(offset, offset == 0);
     }
 
+    // 读取内存数据的片段
     public SelectMappedBufferResult getData(final long offset, final boolean returnFirstOnNotFound) {
+        // 获取一个mapped file的大小, 默认1G
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
+        // 根据偏移量, 查找出对应的mapped file
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, returnFirstOnNotFound);
         if (mappedFile != null) {
             int pos = (int) (offset % mappedFileSize);
@@ -216,20 +219,24 @@ public class CommitLog {
     /**
      * When the normal exit, data recovery, all memory data have been flush
      */
+    // 恢复mapped file
     public void recoverNormally(long maxPhyOffsetOfConsumeQueue) {
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
             // Began to recover from the last third file
+            // 从倒数第三个开始恢复
             int index = mappedFiles.size() - 3;
             if (index < 0)
                 index = 0;
 
             MappedFile mappedFile = mappedFiles.get(index);
+            // 复制mapped file中的byte buffer
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
             long processOffset = mappedFile.getFileFromOffset();
             long mappedFileOffset = 0;
             while (true) {
+                // 检查每条消息
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
                 // Normal data
@@ -294,8 +301,7 @@ public class CommitLog {
      *
      * @return 0 Come the end of the file // >0 Normal messages // -1 Message checksum failure
      */
-    public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC,
-        final boolean readBody) {
+    public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC, final boolean readBody) {
         try {
             // 1 TOTAL SIZE
             int totalSize = byteBuffer.getInt();
@@ -406,7 +412,7 @@ public class CommitLog {
                     }
                 }
             }
-
+            // 计算消息长度
             int readLength = calMsgLength(sysFlag, bodyLen, topicLen, propertiesLength);
             if (totalSize != readLength) {
                 doNothingForDeadCode(reconsumeTimes);
@@ -482,6 +488,7 @@ public class CommitLog {
             int index = mappedFiles.size() - 1;
             MappedFile mappedFile = null;
             for (; index >= 0; index--) {
+                // 找到符合recovery机制的mapped file
                 mappedFile = mappedFiles.get(index);
                 if (this.isMappedFileMatchedRecover(mappedFile)) {
                     log.info("recover from this mapped file " + mappedFile.getFileName());
@@ -574,19 +581,15 @@ public class CommitLog {
             return false;
         }
 
-        if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
-            && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
+        if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable() && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
             if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
-                log.info("find check timestamp, {} {}",
-                    storeTimestamp,
-                    UtilAll.timeMillisToHumanString(storeTimestamp));
+                log.info("find check timestamp, {} {}", storeTimestamp, UtilAll.timeMillisToHumanString(storeTimestamp));
                 return true;
             }
         } else {
+            // 默认会到这里
             if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
-                log.info("find check timestamp, {} {}",
-                    storeTimestamp,
-                    UtilAll.timeMillisToHumanString(storeTimestamp));
+                log.info("find check timestamp, {} {}", storeTimestamp, UtilAll.timeMillisToHumanString(storeTimestamp));
                 return true;
             }
         }
