@@ -78,11 +78,11 @@ public class HAService {
     }
 
     public boolean isSlaveOK(final long masterPutWhere) {
+        // 连接的从节点数量是否大于0
         boolean result = this.connectionCount.get() > 0;
-        result =
-            result
-                && ((masterPutWhere - this.push2SlaveMaxOffset.get()) < this.defaultMessageStore
-                .getMessageStoreConfig().getHaSlaveFallbehindMax());
+        // 主从最多落后多少, 延迟大小不超过默认的256m
+        result = result
+                && ((masterPutWhere - this.push2SlaveMaxOffset.get()) < this.defaultMessageStore.getMessageStoreConfig().getHaSlaveFallbehindMax());
         return result;
     }
 
