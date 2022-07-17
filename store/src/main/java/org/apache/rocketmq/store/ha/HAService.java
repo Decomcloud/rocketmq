@@ -61,8 +61,8 @@ public class HAService {
 
     public HAService(final DefaultMessageStore defaultMessageStore) throws IOException {
         this.defaultMessageStore = defaultMessageStore;
-        this.acceptSocketService =
-            new AcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
+        // 默认10912
+        this.acceptSocketService = new AcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
         this.groupTransferService = new GroupTransferService();
         this.haClient = new HAClient();
     }
@@ -204,20 +204,23 @@ public class HAService {
             while (!this.isStopped()) {
                 try {
                     this.selector.select(1000);
+                    // 每个连接都对应一个SelectionKey
                     Set<SelectionKey> selected = this.selector.selectedKeys();
 
                     if (selected != null) {
                         for (SelectionKey k : selected) {
                             if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {
+                                // 完成tcp连接
                                 SocketChannel sc = ((ServerSocketChannel) k.channel()).accept();
 
                                 if (sc != null) {
-                                    HAService.log.info("HAService receive new connection, "
-                                        + sc.socket().getRemoteSocketAddress());
+                                    HAService.log.info("HAService receive new connection, " + sc.socket().getRemoteSocketAddress());
 
                                     try {
+                                        // 封装连接
                                         HAConnection conn = new HAConnection(HAService.this, sc);
                                         conn.start();
+                                        // 加入连接列表
                                         HAService.this.addConnection(conn);
                                     } catch (Exception e) {
                                         log.error("new HAConnection exception", e);
@@ -228,7 +231,7 @@ public class HAService {
                                 log.warn("Unexpected ops in select " + k.readyOps());
                             }
                         }
-
+                        // 清除
                         selected.clear();
                     }
                 } catch (Exception e) {
@@ -333,6 +336,7 @@ public class HAService {
     class HAClient extends ServiceThread {
         private static final int READ_MAX_BUFFER_SIZE = 1024 * 1024 * 4;
         private final AtomicReference<String> masterAddress = new AtomicReference<>();
+        // 返回8个字节的偏移量
         private final ByteBuffer reportOffset = ByteBuffer.allocate(8);
         private SocketChannel socketChannel;
         private Selector selector;
@@ -355,11 +359,10 @@ public class HAService {
             }
         }
 
+        // 是否到了定时上报ack
         private boolean isTimeToReportOffset() {
-            long interval =
-                HAService.this.defaultMessageStore.getSystemClock().now() - this.lastWriteTimestamp;
-            boolean needHeart = interval > HAService.this.defaultMessageStore.getMessageStoreConfig()
-                .getHaSendHeartbeatInterval();
+            long interval = HAService.this.defaultMessageStore.getSystemClock().now() - this.lastWriteTimestamp;
+            boolean needHeart = interval > HAService.this.defaultMessageStore.getMessageStoreConfig().getHaSendHeartbeatInterval();
 
             return needHeart;
         }
@@ -412,9 +415,11 @@ public class HAService {
             int readSizeZeroTimes = 0;
             while (this.byteBufferRead.hasRemaining()) {
                 try {
+                    // 读取到缓冲区
                     int readSize = this.socketChannel.read(this.byteBufferRead);
                     if (readSize > 0) {
                         readSizeZeroTimes = 0;
+                        // 分发请求
                         boolean result = this.dispatchReadRequest();
                         if (!result) {
                             log.error("HAClient, dispatchReadRequest error");
@@ -450,8 +455,7 @@ public class HAService {
 
                     if (slavePhyOffset != 0) {
                         if (slavePhyOffset != masterPhyOffset) {
-                            log.error("master pushed offset not equal the max phy offset in slave, SLAVE: "
-                                + slavePhyOffset + " MASTER: " + masterPhyOffset);
+                            log.error("master pushed offset not equal the max phy offset in slave, SLAVE: " + slavePhyOffset + " MASTER: " + masterPhyOffset);
                             return false;
                         }
                     }
@@ -459,9 +463,8 @@ public class HAService {
                     if (diff >= (msgHeaderSize + bodySize)) {
                         byte[] bodyData = byteBufferRead.array();
                         int dataStart = this.dispatchPosition + msgHeaderSize;
-
-                        HAService.this.defaultMessageStore.appendToCommitLog(
-                                masterPhyOffset, bodyData, dataStart, bodySize);
+                        // 追加到commit log中
+                        HAService.this.defaultMessageStore.appendToCommitLog(masterPhyOffset, bodyData, dataStart, bodySize);
 
                         this.dispatchPosition += msgHeaderSize + bodySize;
 
@@ -556,6 +559,7 @@ public class HAService {
                     if (this.connectMaster()) {
 
                         if (this.isTimeToReportOffset()) {
+                            // 上报最大offset
                             boolean result = this.reportSlaveMaxOffset(this.currentReportedOffset);
                             if (!result) {
                                 this.closeMaster();
@@ -563,7 +567,7 @@ public class HAService {
                         }
 
                         this.selector.select(1000);
-
+                        // 处理接收到的数据
                         boolean ok = this.processReadEvent();
                         if (!ok) {
                             this.closeMaster();
