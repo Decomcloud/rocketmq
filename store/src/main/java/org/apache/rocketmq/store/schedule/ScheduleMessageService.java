@@ -376,9 +376,8 @@ public class ScheduleMessageService extends ConfigManager {
         }
 
         public void executeOnTimeup() {
-            ConsumeQueue cq =
-                ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
-                    delayLevel2QueueId(delayLevel));
+            // 通过延迟级别寻找comsumer queue
+            ConsumeQueue cq = ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, delayLevel2QueueId(delayLevel));
 
             if (cq == null) {
                 this.scheduleNextTimerTask(this.offset, DELAY_FOR_A_WHILE);
@@ -389,11 +388,9 @@ public class ScheduleMessageService extends ConfigManager {
             if (bufferCQ == null) {
                 long resetOffset;
                 if ((resetOffset = cq.getMinOffsetInQueue()) > this.offset) {
-                    log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, queueId={}",
-                        this.offset, resetOffset, cq.getQueueId());
+                    log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, queueId={}", this.offset, resetOffset, cq.getQueueId());
                 } else if ((resetOffset = cq.getMaxOffsetInQueue()) < this.offset) {
-                    log.error("schedule CQ offset invalid. offset={}, cqMaxOffset={}, queueId={}",
-                        this.offset, resetOffset, cq.getQueueId());
+                    log.error("schedule CQ offset invalid. offset={}, cqMaxOffset={}, queueId={}", this.offset, resetOffset, cq.getQueueId());
                 } else {
                     resetOffset = this.offset;
                 }
@@ -416,8 +413,7 @@ public class ScheduleMessageService extends ConfigManager {
                             tagsCode = cqExtUnit.getTagsCode();
                         } else {
                             //can't find ext content.So re compute tags code.
-                            log.error("[BUG] can't find consume queue extend file content!addr={}, offsetPy={}, sizePy={}",
-                                tagsCode, offsetPy, sizePy);
+                            log.error("[BUG] can't find consume queue extend file content!addr={}, offsetPy={}, sizePy={}", tagsCode, offsetPy, sizePy);
                             long msgStoreTime = defaultMessageStore.getCommitLog().pickupStoreTimestamp(offsetPy, sizePy);
                             tagsCode = computeDeliverTimestamp(delayLevel, msgStoreTime);
                         }
@@ -440,8 +436,7 @@ public class ScheduleMessageService extends ConfigManager {
 
                     MessageExtBrokerInner msgInner = ScheduleMessageService.this.messageTimeup(msgExt);
                     if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
-                        log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
-                            msgInner.getTopic(), msgInner);
+                        log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}", msgInner.getTopic(), msgInner);
                         continue;
                     }
 
