@@ -538,13 +538,14 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    // 读取和写入都是基于mapped file映射的page cache, broker采用读写分离,
+    // 写入到堆外缓存中去,  定时commit到 pagecache中
     @Override
     public boolean isOSPageCacheBusy() {
         long begin = this.getCommitLog().getBeginTimeInLock();
         long diff = this.systemClock.now() - begin;
 
-        return diff < 10000000
-            && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills();
+        return diff < 10000000 && diff > this.messageStoreConfig.getOsPageCacheBusyTimeOutMills();
     }
 
     @Override
