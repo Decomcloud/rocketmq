@@ -611,6 +611,7 @@ public class BrokerController {
         }
     }
 
+    // 注册broker消息处理
     public void registerProcessor() {
         /**
          * SendMessageProcessor

@@ -256,7 +256,9 @@ public abstract class RebalanceImpl {
                 break;
             }
             case CLUSTERING: {
+                // topic下面的consumer queue
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
+                // 找到consumer 下的分组实例
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -279,6 +281,7 @@ public abstract class RebalanceImpl {
 
                     List<MessageQueue> allocateResult = null;
                     try {
+                        // 更新
                         allocateResult = strategy.allocate(
                             this.consumerGroup,
                             this.mQClientFactory.getClientId(),

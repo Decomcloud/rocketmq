@@ -80,6 +80,7 @@ public class MQAdminImpl {
         createTopic(key, newTopic, queueNum, 0);
     }
 
+    // 创建topic
     public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
         try {
             Validators.checkTopic(newTopic);
@@ -95,6 +96,7 @@ public class MQAdminImpl {
                 StringBuilder orderTopicString = new StringBuilder();
 
                 for (BrokerData brokerData : brokerDataList) {
+                    // 获取master节点
                     String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
                     if (addr != null) {
                         TopicConfig topicConfig = new TopicConfig(newTopic);
@@ -103,6 +105,7 @@ public class MQAdminImpl {
                         topicConfig.setTopicSysFlag(topicSysFlag);
 
                         boolean createOK = false;
+                        // 到broker机器上创建
                         for (int i = 0; i < 5; i++) {
                             try {
                                 this.mQClientFactory.getMQClientAPIImpl().createTopic(addr, key, topicConfig, timeoutMillis);
